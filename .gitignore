@@ -1,0 +1,38 @@
+config/db.php
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+/tmp/php_errors.log
+/tmp/php_logs/
+
+# Composer
+/vendor/
+
+# Environment files
+.env
+
+# Cache, Sessions
+/storage/
+bootstrap/cache/
+
+# Backup files
+*.bak
+*.tmp
+*.swp
+*.swo
+*.orig
+
+# DB dumps
+*.sql
+*.dump
+
+/node_modules/
+

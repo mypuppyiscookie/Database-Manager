@@ -1,0 +1,14 @@
+<?php
+$host = "localhost";
+$db_user = "YOUR_USER";
+$db_pwd = "YOUR_PASSWORD";
+$db_name = "YOUR_DB_NAME";
+
+$conn = mysqli_connect($host, $db_user, $db_pwd, $db_name);
+
+if (!$conn) {
+    die("MYSQL 연결 실패: " . mysqli_connect_error());
+}
+
+mysqli_set_charset($conn, "utf8");
+?>

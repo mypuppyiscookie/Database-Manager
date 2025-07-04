@@ -1,0 +1,240 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+}
+
+body {
+    background-color: #f2f2f2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.main-container {
+    width: 100%;
+    height: 100%;
+}
+
+.main-container header {
+    display: flex;
+    height: 5%;
+    justify-content: space-between;
+    padding: 10px 30px;
+    align-items: center;
+    background-color: #5a5a5a;
+    min-height: 45px;
+}
+
+.logo {
+    font-size: 24px;
+    color: #fff;
+    text-decoration: none;
+}
+
+.nav-bar {
+    width: 20%;
+    display: flex;
+    justify-content: space-between;
+}
+
+.nav-bar a {
+    font-size: 14px;
+    color: #fff;
+    text-decoration: none;
+}
+
+.main-contents {
+    display: flex;
+    width: 100%;
+    height: 95%;
+}
+
+.side-bar {
+    position: relative;
+    height: 100%;
+    flex: 1.5;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 5px;
+    border-right: 1px solid #5a5a5a;
+}
+
+.db-container {
+    width: 100%;
+}
+
+.db-btn {
+    width: 100%;
+    margin: 2.5px;
+    padding: 4px 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    text-align: start;
+}
+
+.table-container {
+    width: 100%;
+}
+
+.table-btn {
+    width: calc(100% - 12.5px);
+    margin: 2.5px 2.5px 2.5px 15px;
+    padding: 4px 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    text-align: start;
+}
+
+.db-btn:hover, .table-btn:hover {
+    background-color: #5a5a5a;
+    color: #fff;
+}
+
+.content-bar {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    flex: 8.5;
+    height: 100%;
+    overflow: hidden;
+}
+
+.data-table {
+    width: 100%;
+    height: calc(100% - 30px);
+    border-collapse: collapse;
+    table-layout: auto;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+.table-inner {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+/* 테이블 기본 스타일 */
+.data-table {
+    border-spacing: 0;
+    width: 100%;
+    border-collapse: separate;
+}
+
+.data-table th,
+.data-table td {
+    all: unset;
+    display: table-cell;
+    height: 20px !important;
+    position: relative;
+    border: 1px solid #ccc;
+    white-space: nowrap;
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.2;
+    vertical-align: middle;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 인덱스 열만 스타일 적용 */
+.data-table td:first-child {
+    width: 50px !important;
+    text-align: left;
+    padding: 4px 2px !important;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.row-index {
+    text-align: center;
+    font-weight: normal;
+    color: #666;
+}
+
+/* .data-table th .resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 5px;
+  cursor: col-resize;
+  user-select: none;
+} */
+
+.data-table th {
+    background-color: #f5f5f5;
+}
+
+.cell-btn {
+    all: unset;
+    width: 100%;
+    height: 20px;
+    border: none;
+    padding: 1px;
+    text-align: left;
+    font-size: 14px;
+}
+
+.cell-editor {
+    all: unset;
+    width: calc(100% - 2px);
+    height: calc(100% - 2px);
+    border: solid 1px #5a5a5a;
+    font-size: 14px;
+}
+
+.edit-bar {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    height: 30px;
+    width: 100%;
+    background-color: #5a5a5a;
+}
+
+.edit-bar button {
+    border: none;
+    background-color: #5a5a5a;
+    color: #fff;
+    margin: 0 20px;
+    padding: 0 10px;
+    border-radius: 5px;
+}
+
+.edit-bar button:disabled {
+    color: #fff;
+    cursor: default;
+    opacity: 0.5;
+}
+
+.separator {
+    color: #fff;
+}
+
+/* new Row의 input 스타일 */
+tr[data-is-new="true"] input[type="text"] {
+    all: unset;
+    width: calc(100% - 2px);
+    height: calc(100% - 2px);
+    border: 1px solid #5a5a5a;
+    background-color: lightgreen;
+    font-size: 14px;
+}
+
+tr[data-is-new="true"] input[type="text"]:focus {
+    all: unset;
+    width: calc(100% - 2px);
+    height: calc(100% - 2px);
+    border: 1px solid #5a5a5a;
+    background-color: #4CAF50;
+    font-size: 14px;
+}
