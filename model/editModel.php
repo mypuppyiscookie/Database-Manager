@@ -106,42 +106,51 @@ class editModel {
     
     //데이터 삭제
     public static function deleteRows($dbName, $tableName, $deleteRows) {
-        global $conn;
-
+        require_once __DIR__ . '/../config/db.php';
+    
         mysqli_select_db($conn, $dbName);
-
-        mysqli_begin_transaction($conn);
-
-        try {
-            foreach ($deleteRows as $row) {
-                $primaryKey = mysqli_real_escape_string($conn, $row['primaryKey']);
-                $primaryValue = mysqli_real_escape_string($conn, $row['primaryValue']);
-
-                $sql = "
-                    DELETE FROM `$tableName`
-                    WHERE `$primaryKey` = '$primaryValue'
-                ";
-
-                if (!mysqli_query($conn, $sql)) {
-                    throw new Exception("쿼리 실패: " . mysqli_error($conn));
-                }
-            }
-
-            mysqli_commit($conn);
-
+    
+        if (empty($deleteRows)) {
             return [
-                "status" => "success",
-                "message" => "데이터가 삭제되었습니다."
-            ];
-
-        } catch (Exception $e) {
-            mysqli_rollback($conn);
-
-            return [
-                "status" => "error",
-                "message" => $e->getMessage()
+                'status' => 'success',
+                'message' => '삭제할 행이 없습니다.'
             ];
         }
+    
+        // PK 존재 여부 체크
+        $pkName = $deleteRows[0]['primaryKey'] ?? null;
+        if (!$pkName) {
+            return [
+                'status' => 'error',
+                'message' => '기본키가 없는 테이블은 삭제할 수 없습니다.'
+            ];
+        }
+    
+        foreach ($deleteRows as $row) {
+            $pkValue = $row['primaryValue'] ?? null;
+            if ($pkValue === null) {
+                return [
+                    'status' => 'error',
+                    'message' => '기본키 값이 비어 있어 삭제할 수 없습니다.'
+                ];
+            }
+    
+            $pkValEscaped = mysqli_real_escape_string($conn, $pkValue);
+            $sql = "DELETE FROM `$tableName` WHERE `$pkName` = '$pkValEscaped' LIMIT 1";
+    
+            if (!mysqli_query($conn, $sql)) {
+                return [
+                    'status' => 'error',
+                    'message' => mysqli_error($conn)
+                ];
+            }
+        }
+    
+        return [
+            'status' => 'success',
+            'message' => '삭제 완료'
+        ];
     }
+    
 
 }

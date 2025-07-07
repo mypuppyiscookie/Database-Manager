@@ -5,9 +5,7 @@
     <title>Database Manager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="../css/main.css" />
-    <link rel="stylesheet" href="../css/style.css" />
     <script src="../js/loadDb.js"></script>
-    <script src="../js/loadData.js"></script>
     <script src="../js/uiControls.js"></script>
     <script src="../js/edit.js"></script>
 </head>
