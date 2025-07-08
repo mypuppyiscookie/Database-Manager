@@ -206,26 +206,39 @@ function loadTableData(dbName, tableName, container) {
                 tbody.appendChild(tr);
             });
 
-            // 최소 32행 유지
-            const MIN_ROWS = 32;
-            const currentRows = data?.length || 0;
+            // 최소 29행 유지
+            const MIN_ROWS = 29;
+            const dataRows = data?.length || 0;
+            const emptyRows = Math.max(0, MIN_ROWS - dataRows);
             const headerColumns = headerRow.children.length - 1;
 
-            for (let i = currentRows; i < MIN_ROWS; i++) {
+            for (let i = 0; i < emptyRows; i++) {
                 const tr = document.createElement('tr');
+                tr.dataset.pkValue = '';
+                tr.dataset.pkName = primaryKey || '';
+
                 const indexTd = document.createElement('td');
-                indexTd.textContent = i + 1;
                 indexTd.className = 'row-index';
+                indexTd.textContent = dataRows + i + 1;
                 tr.appendChild(indexTd);
 
-                for (let c = 0; c < headerColumns; c++) {
+                Object.keys(data[0] || window.currentTableSchema || {}).forEach((key) => {
                     const td = document.createElement('td');
-                    td.innerHTML = '&nbsp;';
+                    const btn = document.createElement('button');
+                    btn.className = 'cell-btn';
+                    btn.textContent = '';
+                    btn.dataset.db = dbName;
+                    btn.dataset.key = key;
+                    btn.dataset.value = '';
+                    btn.dataset.id = '';
+                    td.appendChild(btn);
                     tr.appendChild(td);
-                }
+                });
 
                 tbody.appendChild(tr);
             }
+
+
 
             table.appendChild(tbody);
             tableWrapper.appendChild(table);

@@ -1,9 +1,9 @@
 <?php
 // // 에러 로깅을 위해 파일 상단에 추가
-// error_reporting(E_ALL);
-// ini_set('display_errors', 1);
-// ini_set('log_errors', 1);
-// ini_set('error_log', '/tmp/php_errors.log');
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', '/tmp/php_errors.log');
 
 require_once("../model/editModel.php");
 
@@ -66,6 +66,30 @@ function handleSave($dbName, $tableName) {
 
     @file_put_contents($logFile, "[" . date('Y-m-d H:i:s') . "] [Payload]\n" . print_r($payload, true) . "\n\n", FILE_APPEND);
 
+    if (empty($json)) {
+        echo json_encode([
+            "status" => "error",
+            "message" => "수신된 JSON 데이터가 없습니다."
+        ]);
+        return;
+    }
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        echo json_encode([
+            "status" => "error",
+            "message" => "잘못된 JSON 형식: " . json_last_error_msg()
+        ]);
+        return;
+    }
+    
+    if (!$payload || !is_array($payload)) {
+        echo json_encode([
+            "status" => "error",
+            "message" => "파싱된 payload가 배열이 아닙니다."
+        ]);
+        return;
+    }
+    
     if (!$payload) {
         echo json_encode([
             "status" => "error",
