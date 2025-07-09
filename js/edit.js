@@ -54,7 +54,6 @@ function globalClickHandler(e) {
         return;
     }
     if (e.target.matches('#add')) {
-        console.log('Add button clicked');
         e.stopImmediatePropagation();
         e.preventDefault();
         if (e.handled) return;
@@ -101,7 +100,6 @@ function handleCellClick(button) {
         return;
     }
 
-    // 기존 로우도 PK 없어도 수정 가능하도록 변경
     if (key) {
         createEditor(td, value, key);
     }
@@ -136,18 +134,31 @@ function saveCurrentEdit(input) {
     if (!input) return;
 
     const td = input.closest('td');
+    const tr = td.closest('tr');
     const oldValue = input.defaultValue;
-    const newValue = input.value.trim();
+    let newValue = input.value.trim();
+
+    if (newValue === "") {
+        newValue = null;
+    }
+
+    const primaryKey = tr?.dataset.pkName;
+    const pkValue = tr?.dataset.pkValue;
+    const key = input.dataset.key;
 
     if (oldValue !== newValue) {
-        const row = td.closest('tr');
-        const { pkValue, primaryKey } = row?.dataset || {};
-        const key = input.dataset.key;
-        if (primaryKey && pkValue && key) {
-            addOrUpdateModifiedCell(primaryKey, pkValue, key, newValue);
-            td.style.backgroundColor = COLORS.modified;
-        }
+        console.log(
+            `[수정] PK(${primaryKey}:${pkValue}) 컬럼(${key}) 값 변경 →`,
+            `기존 값: "${oldValue}" → 새 값: "${newValue}"`
+        );
+
+        addOrUpdateModifiedCell(primaryKey, pkValue, key, newValue);
+        td.style.backgroundColor = COLORS.modified;
+        setEditingMode(true);
     } else {
+        console.log(
+            `[수정] 변경 없음 → PK(${primaryKey}:${pkValue}) 컬럼(${key}) 값 그대로: "${oldValue}"`
+        );
         td.style.backgroundColor = '';
     }
 
@@ -160,7 +171,7 @@ function replaceInputWithButton(td, value) {
     const key = input?.dataset.key;
     const btn = document.createElement('button');
     btn.className = 'cell-btn';
-    btn.textContent = value;
+    btn.textContent = value === null ? "" : value;
     if (key) btn.dataset.key = key;
     td.innerHTML = '';
     td.appendChild(btn);
@@ -168,15 +179,26 @@ function replaceInputWithButton(td, value) {
 
 // 수정된 셀 추가
 function addOrUpdateModifiedCell(primaryKey, primaryValue, key, value) {
+    if (value === "") {
+        value = null;
+    }
+
     const existing = state.updateCells.find(
         (item) =>
             item.primaryKey === primaryKey &&
             String(item.primaryValue) === String(primaryValue) &&
             item.key === key
     );
+
     if (existing) {
+        console.log(
+            `[수정 덮어쓰기] PK(${primaryKey}:${primaryValue}) 컬럼(${key}) → 새 값으로 덮어씀: "${existing.value}" → "${value}"`
+        );
         existing.value = value;
     } else {
+        console.log(
+            `[수정 추가] PK(${primaryKey}:${primaryValue}) 컬럼(${key}) → 값: "${value}"`
+        );
         state.updateCells.push({
             primaryKey,
             primaryValue,
@@ -185,6 +207,8 @@ function addOrUpdateModifiedCell(primaryKey, primaryValue, key, value) {
             modifiedAt: new Date().toISOString()
         });
     }
+
+    console.log('현재 updateCells:', state.updateCells);
 }
 
 // 로우 추가 핸들러
@@ -203,103 +227,7 @@ function handleAddRow() {
 
     const allRows = Array.from(tbody.querySelectorAll('tr'));
 
-    const dataRows = allRows.filter(tr => {
-        return Array.from(tr.querySelectorAll('.cell-btn')).some(
-            btn => btn.textContent.trim() !== ""
-        );
-    });
-
-    const MIN_ROWS = 29;
-
-    // 어디에 추가할지 referenceRow를 찾음
-    let referenceRow = null;
-
-    if (state.selectedCell) {
-        referenceRow = state.selectedCell.closest('tr')?.nextSibling;
-    } else {
-        let lastDataRow = null;
-        for (let i = allRows.length - 1; i >= 0; i--) {
-            const tr = allRows[i];
-            const hasData = Array.from(tr.querySelectorAll('.cell-btn')).some(
-                btn => btn.textContent.trim() !== ""
-            );
-            if (hasData) {
-                lastDataRow = tr;
-                break;
-            }
-        }
-        if (lastDataRow) {
-            referenceRow = lastDataRow.nextSibling;
-        }
-    }
-
-    // referenceRow가 빈 row인지 확인
-    let replaceTarget = null;
-
-    if (referenceRow && dataRows.length < MIN_ROWS) {
-        const isEmpty = Array.from(referenceRow.querySelectorAll('.cell-btn')).every(
-            btn => btn.textContent.trim() === ""
-        );
-        if (isEmpty) {
-            replaceTarget = referenceRow;
-        }
-    }
-
-    const newRow = document.createElement('tr');
-    newRow.dataset.isNew = "true";
-    newRow.style.backgroundColor = COLORS.newRow;
-
-    const indexTd = document.createElement('td');
-    indexTd.className = 'row-index';
-    indexTd.textContent = replaceTarget
-        ? replaceTarget.querySelector('td.row-index')?.textContent || ''
-        : tbody.rows.length + 1;
-    newRow.appendChild(indexTd);
-
-    for (const key of columnKeys) {
-        const td = document.createElement('td');
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.dataset.key = key;
-        input.style.width = '100%';
-        td.appendChild(input);
-        newRow.appendChild(td);
-    }
-
-    if (replaceTarget) {
-        tbody.replaceChild(newRow, replaceTarget);
-    } else if (referenceRow && tbody.contains(referenceRow)) {
-        tbody.insertBefore(newRow, referenceRow);
-    } else {
-        tbody.appendChild(newRow);
-    }
-
-    newRow.scrollIntoView();
-
-    // index 재정렬
-    Array.from(tbody.rows).forEach((tr, idx) => {
-        const indexCell = tr.querySelector('td.row-index');
-        if (indexCell) indexCell.textContent = idx + 1;
-    });
-}
-
-
-// 삭제
-function handleAddRow() {
-    const table = dom.table;
-    if (!table) return;
-    const tbody = table.querySelector('tbody');
-    if (!tbody) return;
-
-    const columnKeys = [];
-    const headerCells = table.querySelectorAll('thead th');
-    for (let i = 1; i < headerCells.length; i++) {
-        const colName = headerCells[i].textContent.replace(/^🔑\s*/, '');
-        columnKeys.push(colName);
-    }
-
-    const allRows = Array.from(tbody.querySelectorAll('tr'));
-
+    // 현재 데이터가 있는 행만 찾기
     const dataRows = allRows.filter(tr => {
         return tr.hasAttribute('data-is-new') ||
                Array.from(tr.querySelectorAll('.cell-btn')).some(
@@ -307,40 +235,25 @@ function handleAddRow() {
                );
     });
 
-    const MIN_ROWS = 29;
-
-    let lastDataRow = null;
-
-    if (dataRows.length > 0) {
-        lastDataRow = dataRows[dataRows.length - 1];
-    }
+    const MIN_ROWS = 34;
 
     let replaceTarget = null;
 
-    if (lastDataRow) {
-        const nextRow = lastDataRow.nextElementSibling;
-
-        if (nextRow && !nextRow.hasAttribute('data-is-new')) {
-            const isEmpty = Array.from(nextRow.querySelectorAll('.cell-btn')).every(
-                btn => btn.textContent.trim() === ""
-            );
-            if (isEmpty) {
-                replaceTarget = nextRow;
-            }
-        }
-    } else {
-        // 데이터가 아예 없으면 → 맨 위의 첫 빈 row를 replace
+    if (dataRows.length < MIN_ROWS) {
+        // 비어있는 row들 중 가장 위에 있는 거 하나 골라서 대체
         const emptyRows = allRows.filter(tr => {
             return !tr.hasAttribute('data-is-new') &&
                    Array.from(tr.querySelectorAll('.cell-btn')).every(
                        btn => btn.textContent.trim() === ""
                    );
         });
+
         if (emptyRows.length > 0) {
             replaceTarget = emptyRows[0];
         }
     }
 
+    // 추가할 row 생성
     const newRow = document.createElement('tr');
     newRow.dataset.isNew = "true";
     newRow.style.backgroundColor = COLORS.newRow;
@@ -364,26 +277,100 @@ function handleAddRow() {
 
     if (replaceTarget) {
         tbody.replaceChild(newRow, replaceTarget);
-    } else if (lastDataRow) {
-        // 데이터가 있으면 → lastDataRow 뒤에 insert
-        if (lastDataRow.nextSibling) {
-            tbody.insertBefore(newRow, lastDataRow.nextSibling);
-        } else {
-            tbody.appendChild(newRow);
-        }
     } else {
-        // 데이터가 전혀 없으면 append
-        tbody.appendChild(newRow);
+        // 어디에 추가할지 결정
+        let lastDataRow = null;
+
+        if (dataRows.length > 0) {
+            lastDataRow = dataRows[dataRows.length - 1];
+        }
+
+        if (lastDataRow) {
+            if (lastDataRow.nextSibling) {
+                tbody.insertBefore(newRow, lastDataRow.nextSibling);
+            } else {
+                tbody.appendChild(newRow);
+            }
+        } else {
+            // 데이터가 아무것도 없으면 맨 위
+            tbody.insertBefore(newRow, tbody.rows[0] || null);
+        }
     }
 
-    newRow.scrollIntoView();
-
-    // index 재정렬
+    // 인덱스 다시 매기기
     Array.from(tbody.rows).forEach((tr, idx) => {
         const indexCell = tr.querySelector('td.row-index');
         if (indexCell) indexCell.textContent = idx + 1;
     });
+
+    state.insertRows.push(newRow);
+
+    setEditingMode(true);
+    newRow.scrollIntoView();
 }
+
+
+// 삭제
+function handleDeleteRow() {
+    const tbody = dom.tbody;
+    if (!tbody) return;
+
+    // 커서 초기화
+    if (state.nextDeleteRowIndex == null) {
+        if (state.selectedCell) {
+            const tr = state.selectedCell.closest('tr');
+            state.nextDeleteRowIndex = Array.from(tbody.rows).indexOf(tr);
+        } else {
+            state.nextDeleteRowIndex = 0;
+        }
+    }
+
+    const rows = Array.from(tbody.rows);
+
+    // if (state.nextDeleteRowIndex >= rows.length) {
+    //     alert("더 이상 삭제할 row가 없습니다.");
+    //     return;
+    // }
+
+    const targetRow = rows[state.nextDeleteRowIndex];
+
+    const pkHeader = dom.activeTabContent?.querySelector('th[data-is-pk="true"]');
+
+    if (!pkHeader) {
+        alert("기본키가 없는 테이블은 삭제할 수 없습니다.");
+        return;
+    }
+
+    const primaryKey = pkHeader.getAttribute('data-column-name') ||
+                       pkHeader.textContent.trim().replace(/^🔑\s*/, '');
+
+    const pkValue = targetRow?.dataset.pkValue;
+
+    if (!pkValue) {
+        return;
+    }
+
+    targetRow.style.backgroundColor = COLORS.deleted;
+
+    const exists = state.deleteRows.some(
+        (item) => item.primaryKey === primaryKey && item.primaryValue === pkValue
+    );
+
+    if (!exists) {
+        state.deleteRows.push({
+            primaryKey: primaryKey,
+            primaryValue: pkValue,
+            deletedAt: new Date().toISOString()
+        });
+    }
+
+    setEditingMode(true);
+
+    // 다음으로 이동
+    state.nextDeleteRowIndex += 1;
+}
+
+
 
 
 // 저장
@@ -403,7 +390,10 @@ function handleSave() {
             const input = cell.querySelector('input');
             if (input) {
                 const key = input.dataset.key;
-                const value = input.value;
+                let value = input.value.trim();
+                if (value === "") {
+                    value = null;
+                }
                 rowData[key] = value;
             }
         });
@@ -428,19 +418,29 @@ function handleSave() {
         },
         body: JSON.stringify(payload)
     })
-        .then((r) => r.json())
-        .then((result) => {
-            console.log('서버 응답', result);
-            if (result.status === 'success') {
-                state.insertRows = [];
-                state.updateCells = [];
-                state.deleteRows = [];
-                handleRefresh();
-            } else if (result.status === 'error') {
-                alert(`SQL 오류:\n\n${result.message}`);
+        .then(response => response.text())
+        .then(text => {
+            console.log("서버 raw 응답:", text);
+
+            try {
+                const json = JSON.parse(text);
+                console.log("서버 JSON 파싱 성공:", json);
+
+                if (json.status === 'success') {
+                    state.insertRows = [];
+                    state.updateCells = [];
+                    state.deleteRows = [];
+                    handleRefresh();
+                    setEditingMode(false);
+                } else if (json.status === 'error') {
+                    alert(`SQL 오류:\n\n${json.message}`);
+                }
+            } catch (e) {
+                console.error("JSON 파싱 실패:", e);
+                alert("서버에서 JSON이 아닌 응답이 왔습니다:\n\n" + text);
             }
         })
-        .catch((error) => {
+        .catch(error => {
             console.error('에러 발생:', error);
             alert('에러 발생: ' + error.message);
         })
@@ -478,7 +478,18 @@ function handleRefresh() {
     }
 }
 
-// 편집 모드 on/off
+// 수정되었을 때 저장/취소 버튼 활성화
 function setEditingMode(isEditing) {
     state.isEditing = isEditing;
+
+    const container = dom.activeTabContent;
+    const btnSave = container?.querySelector('#save');
+    const btnCancel = container?.querySelector('#cancel');
+
+    if (btnSave && btnCancel) {
+        btnSave.disabled = !isEditing;
+        btnCancel.disabled = !isEditing;
+    } else {
+        console.log('[setEditingMode] 버튼을 찾지 못했습니다.');
+    }
 }

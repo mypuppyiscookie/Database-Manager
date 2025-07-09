@@ -1,9 +1,6 @@
 <?php
-// // 에러 로깅을 위해 파일 상단에 추가
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-ini_set('log_errors', 1);
-ini_set('error_log', '/tmp/php_errors.log');
 
 require_once("../model/editModel.php");
 
@@ -17,41 +14,41 @@ if (!$dbName || !$tableName || !$action) {
     echo json_encode([
         "status" => "error",
         "message" => "필수 파라미터 누락"
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 try {
-switch ($action) {
-    case 'save':
-        handleSave($dbName, $tableName);
-        break;
+    switch ($action) {
+        case 'save':
+            handleSave($dbName, $tableName);
+            break;
 
-    case 'fetch':
-        $data = dbModel::getTableData($dbName, $tableName);
-        echo json_encode([
-            "status" => "success",
-            "data" => $data
-        ]);
-        break;
+        case 'fetch':
+            $data = dbModel::getTableData($dbName, $tableName);
+            echo json_encode([
+                "status" => "success",
+                "data" => $data
+            ], JSON_UNESCAPED_UNICODE);
+            break;
 
-    default:
-        echo json_encode([
-            "status" => "error",
-            "message" => "지원하지 않는 액션입니다."
-        ]);
-        break;
-}
+        default:
+            echo json_encode([
+                "status" => "error",
+                "message" => "지원하지 않는 액션입니다."
+            ], JSON_UNESCAPED_UNICODE);
+            break;
+    }
 
-exit;
+    exit;
 } catch (Exception $e) {
     echo json_encode([
         "status" => "error",
         "message" => $e->getMessage()
-    ]);
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
-    
+
 
 // 저장 처리
 function handleSave($dbName, $tableName) {
@@ -70,7 +67,7 @@ function handleSave($dbName, $tableName) {
         echo json_encode([
             "status" => "error",
             "message" => "수신된 JSON 데이터가 없습니다."
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
         return;
     }
     
@@ -78,7 +75,7 @@ function handleSave($dbName, $tableName) {
         echo json_encode([
             "status" => "error",
             "message" => "잘못된 JSON 형식: " . json_last_error_msg()
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
         return;
     }
     
@@ -86,7 +83,7 @@ function handleSave($dbName, $tableName) {
         echo json_encode([
             "status" => "error",
             "message" => "파싱된 payload가 배열이 아닙니다."
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
         return;
     }
     
@@ -94,7 +91,7 @@ function handleSave($dbName, $tableName) {
         echo json_encode([
             "status" => "error",
             "message" => "수정할 데이터가 없습니다."
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
         return;
     }
 
@@ -103,7 +100,6 @@ function handleSave($dbName, $tableName) {
     $deleteRows = $payload['deleteRows'] ?? [];
 
     $results = [];
-
     $hasError = false;
 
     if (!empty($insertRows)) {
@@ -134,24 +130,23 @@ function handleSave($dbName, $tableName) {
 
     if ($hasError) {
         $errorMessages = [];
-    
+
         foreach ($results as $key => $operation) {
             if (isset($operation['status']) && $operation['status'] === 'error') {
                 $errorMessages[] = $operation['message'];
             }
         }
-    
+
         echo json_encode([
             "status" => "error",
             "message" => implode("\n\n", $errorMessages),
             "details" => $results
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     } else {
         echo json_encode([
             "status" => "success",
             "message" => "저장 완료",
             "details" => $results
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
-    
 }

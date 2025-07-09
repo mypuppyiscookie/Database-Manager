@@ -1,3 +1,9 @@
+function loadTableDataWithSchema(dbName, tableName, container) {
+    loadTableSchema(dbName, tableName, () => {
+        loadTableData(dbName, tableName, container);
+    });
+}
+
 // 탭 관련 전역 변수
 let tabsContainer = null;
 let tabsContent = null;
@@ -7,10 +13,22 @@ let tabsList = null;
 window.currentTableSchema = null;
 
 // 스키마와 데이터를 함께 로드하는 함수
-function loadTableDataWithSchema(dbName, tableName, container) {
-    loadTableSchema(dbName, tableName, () => {
-        loadTableData(dbName, tableName, container);
-    });
+function loadTableSchema(dbName, tableName, callback) {
+    fetch(`../controller/getSchema.php?db=${encodeURIComponent(dbName)}&table=${encodeURIComponent(tableName)}`)
+        .then(res => res.json())
+        .then(json => {
+            if (json.status === 'success') {
+                window.currentTableSchema = json.columns;
+                window.currentPrimaryKey = json.primaryKey || null;
+                if (callback) callback();
+            } else {
+                alert(json.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('스키마를 불러오지 못했습니다.');
+        });
 }
 
 // 탭 생성 함수
@@ -38,21 +56,34 @@ function createTab(dbName, tableName) {
 
     const tabId = `tab-${dbName}-${tableName}`.replace(/[^a-zA-Z0-9-]/g, '-');
 
-    // 이미 열려있는 탭이면 전환만 수행
     const existingTab = document.getElementById(tabId);
     if (existingTab) {
+        console.log("[createTab] 기존 탭 복원 → 재로딩:", dbName, tableName, tabId);
         switchTab(tabId);
+        
+        // ⭐ 반드시 다시 로딩 시도
+        loadTableDataWithSchema(dbName, tableName, existingTab);
         return;
     }
 
     // 새 탭 버튼 생성
     const tab = document.createElement('button');
     tab.className = 'tab';
-    tab.textContent = `${dbName} - ${tableName}`;
+    tab.textContent = `${tableName}`;
     tab.dataset.tabId = tabId;
     tab.onclick = () => {
         switchTab(tabId);
         saveTabsToLocalStorage();
+
+        // ⭐ 탭 클릭 시에도 dataset 이용해 재로딩
+        const content = document.getElementById(tabId);
+        if (content) {
+            const db = content.dataset.db;
+            const table = content.dataset.table;
+            if (db && table) {
+                loadTableDataWithSchema(db, table, content);
+            }
+        }
     };
 
     // 닫기 버튼 생성
@@ -77,16 +108,28 @@ function createTab(dbName, tableName) {
     tabsList.appendChild(tab);
     tabsContent.appendChild(tabContent);
 
-    // 스키마와 데이터 불러오기
-    loadTableDataWithSchema(dbName, tableName, tabContent);
-
-    switchTab(tabId);
+    loadTableSchema(dbName, tableName, () => {
+        loadTableData(dbName, tableName, tabContent);
+        switchTab(tabId);
+    });
 }
+
 
 // 탭 전환 함수
 function switchTab(tabId) {
     const tabs = document.querySelectorAll('.tab');
     const contents = document.querySelectorAll('.tab-content');
+    
+    // 활성화된 탭에 data-tab-active 클래스 추가 (오류 방지)
+    const activeTab = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+    if (activeTab) {
+        // 기존에 활성화된 탭에서 클래스 제거
+        document.querySelectorAll('.tab.data-tab-active').forEach(tab => {
+            tab.classList.remove('data-tab-active');
+        });
+        // 새로 활성화된 탭에 클래스 추가
+        activeTab.classList.add('data-tab-active');
+    }
 
     tabs.forEach(tab => {
         tab.classList.toggle('active', tab.dataset.tabId === tabId);
@@ -121,31 +164,21 @@ function closeTab(tabId) {
     }
 }
 
-// 스키마를 불러오는 함수
-function loadTableSchema(dbName, tableName, callback) {
-    fetch(`../controller/getSchema.php?db=${encodeURIComponent(dbName)}&table=${encodeURIComponent(tableName)}`)
-        .then(res => res.json())
-        .then(json => {
-            if (json.status === 'success') {
-                window.currentTableSchema = json.schema;
-                if (callback) callback();
-            } else {
-                alert(json.message);
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert('스키마를 불러오지 못했습니다.');
-        });
-}
-
 // 테이블 데이터를 불러오는 함수
 function loadTableData(dbName, tableName, container) {
     fetch(`../controller/getTableData.php?db=${encodeURIComponent(dbName)}&table=${encodeURIComponent(tableName)}`)
         .then(response => response.json())
         .then(json => {
-            const data = json.rows;
-            const primaryKey = json.primaryKey;
+            const data = json.rows || [];
+            const primaryKey = json.primaryKey || window.currentPrimaryKey || null;
+
+            // primaryKey도 window에 저장
+            window.currentPrimaryKey = primaryKey;
+
+            // currentTableSchema도 저장
+            if (json.columns) {
+                window.currentTableSchema = json.columns;
+            }
 
             container.innerHTML = '';
 
@@ -163,9 +196,20 @@ function loadTableData(dbName, tableName, container) {
             indexTh.textContent = '#';
             headerRow.appendChild(indexTh);
 
-            Object.keys(data[0] || {}).forEach(key => {
+            // 컬럼 키 목록 가져오기
+            let keys = [];
+
+            if (data.length > 0) {
+                keys = Object.keys(data[0]);
+            } else if (Array.isArray(window.currentTableSchema)) {
+                keys = window.currentTableSchema;
+            } else if (window.currentTableSchema && typeof window.currentTableSchema === 'object') {
+                keys = Object.keys(window.currentTableSchema);
+            }
+
+            keys.forEach(key => {
                 const th = document.createElement('th');
-                if (key === primaryKey) {
+                if (primaryKey && key === primaryKey) {
                     th.textContent = '🔑 ' + key;
                     th.setAttribute('data-is-pk', 'true');
                     th.setAttribute('data-column-name', key);
@@ -180,37 +224,37 @@ function loadTableData(dbName, tableName, container) {
 
             const tbody = document.createElement('tbody');
 
-            (data || []).forEach((row, index) => {
+            // 데이터 rows 생성
+            data.forEach((row, index) => {
                 const tr = document.createElement('tr');
-                tr.dataset.pkValue = row[primaryKey];
-                tr.dataset.pkName = primaryKey;
+                tr.dataset.pkValue = row[primaryKey] ?? '';
+                tr.dataset.pkName = primaryKey ?? '';
 
                 const indexTd = document.createElement('td');
                 indexTd.textContent = index + 1;
                 indexTd.className = 'row-index';
                 tr.appendChild(indexTd);
 
-                for (const key in row) {
+                keys.forEach(key => {
                     const td = document.createElement('td');
                     const btn = document.createElement('button');
                     btn.className = 'cell-btn';
-                    btn.textContent = row[key];
+                    btn.textContent = row[key] ?? '';
                     btn.dataset.db = dbName;
                     btn.dataset.key = key;
-                    btn.dataset.value = row[key];
-                    btn.dataset.id = row[primaryKey];
+                    btn.dataset.value = row[key] ?? '';
+                    btn.dataset.id = row[primaryKey] ?? '';
                     td.appendChild(btn);
                     tr.appendChild(td);
-                }
+                });
 
                 tbody.appendChild(tr);
             });
 
-            // 최소 29행 유지
-            const MIN_ROWS = 29;
-            const dataRows = data?.length || 0;
+            // 최소 33행 유지
+            const MIN_ROWS = 34;
+            const dataRows = data.length;
             const emptyRows = Math.max(0, MIN_ROWS - dataRows);
-            const headerColumns = headerRow.children.length - 1;
 
             for (let i = 0; i < emptyRows; i++) {
                 const tr = document.createElement('tr');
@@ -222,11 +266,12 @@ function loadTableData(dbName, tableName, container) {
                 indexTd.textContent = dataRows + i + 1;
                 tr.appendChild(indexTd);
 
-                Object.keys(data[0] || window.currentTableSchema || {}).forEach((key) => {
+                keys.forEach((key) => {
                     const td = document.createElement('td');
                     const btn = document.createElement('button');
                     btn.className = 'cell-btn';
-                    btn.textContent = '';
+                    btn.textContent = '\u00A0';
+                    btn.disabled = true;
                     btn.dataset.db = dbName;
                     btn.dataset.key = key;
                     btn.dataset.value = '';
@@ -237,8 +282,6 @@ function loadTableData(dbName, tableName, container) {
 
                 tbody.appendChild(tr);
             }
-
-
 
             table.appendChild(tbody);
             tableWrapper.appendChild(table);
@@ -272,11 +315,13 @@ function loadTableData(dbName, tableName, container) {
             btnSave.type = 'button';
             btnSave.id = 'save';
             btnSave.textContent = '저장';
+            btnSave.disabled = true;
 
             const btnCancel = document.createElement('button');
             btnCancel.type = 'button';
             btnCancel.id = 'cancel';
             btnCancel.textContent = '취소';
+            btnCancel.disabled = true;
             btnCancel.onclick = () => {
                 const activeTab = tabsList.querySelector('.tab.active');
                 if (activeTab) {
@@ -319,6 +364,7 @@ function loadTableData(dbName, tableName, container) {
             container.innerHTML = `<div class="error">데이터를 불러오는 중 오류가 발생했습니다: ${err.message}</div>`;
         });
 }
+
 
 // 페이지 로드 시 DB 목록 불러오기
 window.onload = function () {
@@ -377,22 +423,28 @@ window.onload = function () {
                 }
             });
 
+            // ✨ 이 부분이 핵심 수정!
             const openedTabs = JSON.parse(localStorage.getItem('openedTabs') || '[]');
             if (openedTabs.length > 0) {
+                let activeTabId = null;
+
                 openedTabs.forEach(tabInfo => {
-                    createTab(tabInfo.dbName, tabInfo.tableName);
+                    loadTableSchema(tabInfo.dbName, tabInfo.tableName, () => {
+                        createTab(tabInfo.dbName, tabInfo.tableName);
+
+                        if (tabInfo.active && !activeTabId) {
+                            activeTabId = `tab-${tabInfo.dbName}-${tabInfo.tableName}`.replace(/[^a-zA-Z0-9-]/g, '-');
+                            switchTab(activeTabId);
+                        }
+                    });
                 });
-                const activeTab = openedTabs.find(t => t.active);
-                if (activeTab) {
-                    const tabId = `tab-${activeTab.dbName}-${activeTab.tableName}`.replace(/[^a-zA-Z0-9-]/g, '-');
-                    switchTab(tabId);
-                }
             }
         })
         .catch(error => {
             document.getElementById('db-container').innerText = '불러오기 실패: ' + error;
         });
-}
+};
+
 
 // 탭 정보 localStorage에 저장
 function saveTabsToLocalStorage() {

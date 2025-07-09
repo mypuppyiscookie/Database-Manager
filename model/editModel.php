@@ -1,4 +1,7 @@
 <?php
+// error_reporting(E_ALL);
+// ini_set('display_errors', 1);
+
 include_once("../config/db.php");
 
 class editModel {
@@ -106,8 +109,8 @@ class editModel {
     
     //데이터 삭제
     public static function deleteRows($dbName, $tableName, $deleteRows) {
-        require_once __DIR__ . '/../config/db.php';
-    
+        global $conn;
+        
         mysqli_select_db($conn, $dbName);
     
         if (empty($deleteRows)) {

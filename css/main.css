@@ -112,12 +112,40 @@ body {
 }
 
 .tabs {
-    height: 25px;
+    all: unset;
+    height: 22px;
     width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.tab {
+    all: unset;
+    height: 18px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid #5a5a5a;
+    padding: 2px 10px;
+    margin: 0;
+}
+
+.tab.active {
+    background-color: #5a5a5a;
+    color: #fff;
+}
+
+.close-tab {
+    display: none;
+}
+
+.tab.active .close-tab {
+    display: inline-block;
+    margin-left: 5px;
+    cursor: pointer;
 }
 
 .tabs-content {
-    height: calc(100% - 25px);
+    height: calc(100% - 22px);
     overflow: hidden;
 }
 
@@ -133,7 +161,7 @@ body {
 
 .data-table {
     width: 100%;
-    height: calc(100% - 30px);
+    height: calc(100% - 22px);
     border-collapse: collapse;
     overflow-x: auto;
     overflow-y: auto;
@@ -155,12 +183,17 @@ body {
     border: 1px solid #ccc;
     white-space: nowrap;
     text-align: left;
-    font-size: 14px;
+    font-size: 12px;
     line-height: 1.2;
     vertical-align: middle;
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.data-table thead tr {
+    height: 20px !important;
+    outline: 1px solid #5a5a5a !important;
 }
 
 /* 인덱스 열만 스타일 적용 */
@@ -181,8 +214,15 @@ body {
 }
 
 .data-table th {
+    height: 25px !important;
     background-color: #f5f5f5;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    outline: #5a5a5a;
+    padding: 0 2px; 
 }
+
 
 .cell-btn {
     all: unset;
@@ -191,7 +231,7 @@ body {
     border: none;
     padding: 1px;
     text-align: left;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .cell-editor {
@@ -199,7 +239,7 @@ body {
     width: calc(100% - 2px);
     height: calc(100% - 2px);
     border: solid 1px #5a5a5a;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 .edit-bar {
@@ -237,7 +277,7 @@ tr[data-is-new="true"] input[type="text"] {
     height: calc(100% - 2px);
     border: 1px solid #5a5a5a;
     background-color: lightgreen;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 tr[data-is-new="true"] input[type="text"]:focus {
@@ -246,5 +286,5 @@ tr[data-is-new="true"] input[type="text"]:focus {
     height: calc(100% - 2px);
     border: 1px solid #5a5a5a;
     background-color: #4CAF50;
-    font-size: 14px;
+    font-size: 12px;
 }
