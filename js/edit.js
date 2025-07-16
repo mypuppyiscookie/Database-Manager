@@ -209,6 +209,7 @@ function addOrUpdateModifiedCell(primaryKey, primaryValue, key, value) {
     }
 
     console.log('현재 updateCells:', state.updateCells);
+    setEditingMode(true);
 }
 
 // 로우 추가 핸들러
@@ -375,7 +376,7 @@ function handleDeleteRow() {
 
 // 저장
 let isSaving = false;
-function handleSave() {
+window.handleSave = function() {
     if (isSaving) return;
     isSaving = true;
 
@@ -450,7 +451,7 @@ function handleSave() {
 }
 
 // 취소
-function handleCancel() {
+window.handleCancel = function() {
     const newRows = dom.activeTabContent?.querySelectorAll('tr[data-is-new="true"]') || [];
     newRows.forEach((row) => row.remove());
     state.insertRows = [];
@@ -483,13 +484,11 @@ function setEditingMode(isEditing) {
     state.isEditing = isEditing;
 
     const container = dom.activeTabContent;
-    const btnSave = container?.querySelector('#save');
-    const btnCancel = container?.querySelector('#cancel');
+    const btnSave = container?.querySelector('#saveBtn');
+    const btnCancel = container?.querySelector('#cancelBtn');
 
     if (btnSave && btnCancel) {
         btnSave.disabled = !isEditing;
         btnCancel.disabled = !isEditing;
-    } else {
-        console.log('[setEditingMode] 버튼을 찾지 못했습니다.');
     }
 }
